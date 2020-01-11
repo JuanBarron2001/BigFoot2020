@@ -1,57 +1,82 @@
-/*----------------------------------------------------------------------------*/
-/* Copyright (c) 2018-2019 FIRST. All Rights Reserved.                        */
-/* Open Source Software - may be modified and shared by FRC teams. The code   */
-/* must be accompanied by the FIRST BSD license file in the root directory of */
-/* the project.                                                               */
-/*----------------------------------------------------------------------------*/
-
 package frc.robot;
 
 import edu.wpi.first.wpilibj.GenericHID;
-import edu.wpi.first.wpilibj.XboxController;
-import frc.robot.commands.ExampleCommand;
-import frc.robot.subsystems.ExampleSubsystem;
+import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.StartEndCommand;
+import edu.wpi.first.wpilibj2.command.button.JoystickButton;
+import frc.robot.Commands.AutoShoot;
+import frc.robot.Subsystem.Box;
+import frc.robot.Subsystem.DriveTrain;
+import frc.robot.Subsystem.Foot;
+import frc.robot.Subsystem.Pistons;
+import frc.robot.Subsystem.Triangle;
 
-/**
- * This class is where the bulk of the robot should be declared.  Since Command-based is a
- * "declarative" paradigm, very little robot logic should actually be handled in the {@link Robot}
- * periodic methods (other than the scheduler calls).  Instead, the structure of the robot
- * (including subsystems, commands, and button mappings) should be declared here.
- */
-public class RobotContainer {
-  // The robot's subsystems and commands are defined here...
-  private final ExampleSubsystem m_exampleSubsystem = new ExampleSubsystem();
+import static edu.wpi.first.wpilibj.XboxController.Button;
 
-  private final ExampleCommand m_autoCommand = new ExampleCommand(m_exampleSubsystem);
+public class RobotContainer
+{
+    private final DriveTrain robotDrive = new DriveTrain();
+    private final Triangle triangle = new Triangle();
+    private final Pistons pistons = new Pistons();
+    private final Foot foot = new Foot();
+    private final Box box = new Box();
+
+    private final Command simpleAuto = new StartEndCommand(
+        () -> robotDrive.driveVoltage(.1, .1),
+        () -> robotDrive.driveVoltage(0, 0),
+        robotDrive
+        );
+
+    
+    SendableChooser<Command> m_chooser = new SendableChooser<>();
+
+    Joystick gamepad1 = new Joystick(0);
+    Joystick gamepad2 = new Joystick(1);
+
+    public RobotContainer()
+    {
+        this.configureButtonBindings();
+
+        robotDrive.setDefaultCommand(
+            new RunCommand(() -> robotDrive
+                .driveVoltage(gamepad1.getX(GenericHID.Hand.kLeft),
+                            gamepad1.getY(GenericHID.Hand.kRight)),robotDrive));
+
+        m_chooser.addOption("simple Auto", simpleAuto);
 
 
+    }
 
-  /**
-   * The container for the robot.  Contains subsystems, OI devices, and commands.
-   */
-  public RobotContainer() {
-    // Configure the button bindings
-    configureButtonBindings();
-  }
+    private void configureButtonBindings() 
+    {
+        new JoystickButton(gamepad2, 1)
+        .whenPressed(new InstantCommand(triangle::downT, triangle));
 
-  /**
-   * Use this method to define your button->command mappings.  Buttons can be created by
-   * instantiating a {@link GenericHID} or one of its subclasses ({@link
-   * edu.wpi.first.wpilibj.Joystick} or {@link XboxController}), and then passing it to a
-   * {@link edu.wpi.first.wpilibj2.command.button.JoystickButton}.
-   */
-  private void configureButtonBindings() {
-  }
+        new JoystickButton(gamepad2, 2)
+        .whenPressed(new InstantCommand(triangle::upT, triangle));
 
+        new JoystickButton(gamepad2, 3)
+        .whileHeld(new InstantCommand(pistons::push, pistons));
+        //.whenReleased(new InstantCommand(pistons::off, pistons));
 
-  /**
-   * Use this to pass the autonomous command to the main {@link Robot} class.
-   *
-   * @return the command to run in autonomous
-   */
-  public Command getAutonomousCommand() {
-    // An ExampleCommand will run in autonomous
-    return m_autoCommand;
-  }
+        new JoystickButton(gamepad2, 4)
+        .whenPressed(new AutoShoot(pistons, triangle));
+
+        new JoystickButton(gamepad2, 5)
+        .whenPressed(new InstantCommand(box::suck, box));
+
+        new JoystickButton(gamepad2, 6)
+        .whenPressed(new InstantCommand(box::spit, box));
+
+        new JoystickButton(gamepad1, 7)
+        .whileHeld(new InstantCommand(foot::jump, foot));
+    }
+    
+    public Command getAutonomousCommand() {
+        return m_chooser.getSelected();
+      }
 }
