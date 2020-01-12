@@ -1,6 +1,5 @@
 package frc.robot;
 
-import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -15,8 +14,6 @@ import frc.robot.Subsystem.Foot;
 import frc.robot.Subsystem.Pistons;
 import frc.robot.Subsystem.Triangle;
 
-import static edu.wpi.first.wpilibj.XboxController.Button;
-
 public class RobotContainer
 {
     private final DriveTrain robotDrive = new DriveTrain();
@@ -28,14 +25,12 @@ public class RobotContainer
     private final Command simpleAuto = new StartEndCommand(
         () -> robotDrive.driveVoltage(.1, .1),
         () -> robotDrive.driveVoltage(0, 0),
-        robotDrive
-        );
+        robotDrive);
 
-    
     SendableChooser<Command> m_chooser = new SendableChooser<>();
 
-    Joystick gamepad1 = new Joystick(0);
-    Joystick gamepad2 = new Joystick(1);
+    Joystick driver = new Joystick(Constants.driverPad);
+    Joystick controller = new Joystick(Constants.controllerPad);
 
     public RobotContainer()
     {
@@ -43,40 +38,41 @@ public class RobotContainer
 
         robotDrive.setDefaultCommand(
             new RunCommand(() -> robotDrive
-                .driveVoltage(gamepad1.getX(GenericHID.Hand.kLeft),
-                            gamepad1.getY(GenericHID.Hand.kRight)),robotDrive));
+                .driveVoltage(-driver.getRawAxis(1),
+                            driver.getRawAxis(4)),robotDrive));
 
         m_chooser.addOption("simple Auto", simpleAuto);
-
-
     }
 
     private void configureButtonBindings() 
     {
-        new JoystickButton(gamepad2, 1)
+        new JoystickButton(controller, Constants.A)
         .whenPressed(new InstantCommand(triangle::downT, triangle));
 
-        new JoystickButton(gamepad2, 2)
+        new JoystickButton(controller, Constants.B)
         .whenPressed(new InstantCommand(triangle::upT, triangle));
 
-        new JoystickButton(gamepad2, 3)
-        .whileHeld(new InstantCommand(pistons::push, pistons));
-        //.whenReleased(new InstantCommand(pistons::off, pistons));
+        new JoystickButton(controller, Constants.X)
+        .whileHeld(new InstantCommand(pistons::push, pistons))
+        .whenReleased(new InstantCommand(pistons::off, pistons));
 
-        new JoystickButton(gamepad2, 4)
+        new JoystickButton(controller, Constants.Y)
         .whenPressed(new AutoShoot(pistons, triangle));
 
-        new JoystickButton(gamepad2, 5)
-        .whenPressed(new InstantCommand(box::suck, box));
+        new JoystickButton(controller, Constants.LB)
+        .whenPressed(new InstantCommand(box::suck, box))
+        .whenReleased(new InstantCommand(box::stop, box));
 
-        new JoystickButton(gamepad2, 6)
-        .whenPressed(new InstantCommand(box::spit, box));
+        new JoystickButton(controller, Constants.RB)
+        .whenPressed(new InstantCommand(box::spit, box))
+        .whenReleased(new InstantCommand(box::stop, box));;
 
-        new JoystickButton(gamepad1, 7)
+        new JoystickButton(driver, 7)
         .whileHeld(new InstantCommand(foot::jump, foot));
     }
     
-    public Command getAutonomousCommand() {
+    public Command getAutonomousCommand() 
+    {
         return m_chooser.getSelected();
-      }
+    }
 }
